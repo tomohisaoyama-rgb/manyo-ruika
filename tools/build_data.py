@@ -112,7 +112,15 @@ def clean(b):
             t, sp = parts[0], parts[1]
     return t, kind, sp
 
+# 元データの左注の誤りを直す。根拠は奈良県立万葉文化館「万葉百科」（2026-11-25閲覧）と授業の配布資料
+SACHU_FIX = {
+    893: "山上憶良頓首謹みて上る。",  # 元データでは 901 に付いていた
+    901: "",
+}
+
 for b in blocks:
+    if b["no"] in SACHU_FIX:
+        b = dict(b, sachu=SACHU_FIX[b["no"]])
     y = yaku.get(b["id"], "")
     tx, kind, sp = clean(b)
     b = dict(b, text=tx)
