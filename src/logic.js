@@ -130,7 +130,7 @@ export function snip(str, a, b, pad) {
   return (s0 > 0 ? "…" : "") + f(str.slice(s0, a)) + "<mark>" + f(str.slice(a, b)) + "</mark>" + f(str.slice(b, e0)) + (e0 < str.length ? "…" : "");
 }
 
-/* 検索。番号・本文・読み・題詞・作者を順に見る。結果は表示用の行 */
+/* 検索。番号・本文・読み・題詞・歌人・原文・左注・注を順に見る。結果は表示用の行 */
 export function search(P, byNo, raw, limit = 50) {
   const v = raw.trim();
   if (!v) return { kind: "empty" };
@@ -145,7 +145,7 @@ export function search(P, byNo, raw, limit = 50) {
   const rows = []; let more = false;
   for (let i = 0; i < P.length; i++) {
     const p = P[i];
-    if (!(p.tx.includes(v) || (vk && p.kn.includes(vk)) || p.kt.includes(v) || p.au.includes(v) || (p.sp && p.sp.includes(v)) || (p.rev && p.rev.note.includes(v)))) continue;
+    if (!(p.tx.includes(v) || (vk && p.kn.includes(vk)) || p.kt.includes(v) || p.au.includes(v) || (p.gb && p.gb.includes(v)) || (p.sc && p.sc.includes(v)) || (p.rev && p.rev.note.includes(v)))) continue;
     if (rows.length >= limit) { more = true; break; }
     rows.push(hitRow(p, i, v, vk));
   }
@@ -161,8 +161,9 @@ function hitRow(p, i, v, vk) {
     line = hit.length ? snip(p.tx, hit[0], hit[hit.length - 1] + 1, 14) : head();
     why = "読み：" + snip(p.kn, x, x + vk.length, 8);
   } else if ((x = p.kt.indexOf(v)) >= 0) { line = head(); why = "題詞：" + snip(p.kt, x, x + v.length, 10); }
-  else if ((x = p.au.indexOf(v)) >= 0) { line = head(); why = "作者：" + snip(p.au, x, x + v.length, 10); }
-  else if (p.sp && (x = p.sp.indexOf(v)) >= 0) { line = head(); why = "詠み手：" + snip(p.sp, x, x + v.length, 10); }
+  else if ((x = p.au.indexOf(v)) >= 0) { line = head(); why = "歌人：" + snip(p.au, x, x + v.length, 10); }
+  else if (p.gb && (x = p.gb.indexOf(v)) >= 0) { line = head(); why = "原文：" + snip(p.gb, x, x + v.length, 10); }
+  else if (p.sc && (x = p.sc.indexOf(v)) >= 0) { line = head(); why = "左注：" + snip(p.sc, x, x + v.length, 10); }
   else { x = p.rev.note.indexOf(v); line = head(); why = "注：" + snip(p.rev.note, x, x + v.length, 10); }
   return { i, line, why };
 }
@@ -200,27 +201,31 @@ export function kanjiNum(s) {
   }
   return n + t;
 }
+const RIGHT = /(^|\n)右/; // 「右」の左注。万葉百科では前の行に別の注が来ることがある
 const scCount = sc => { const m = /右(?:の|ノ)?([〇一二三四五六七八九十\d]+)首/.exec(sc || ""); return m ? kanjiNum(m[1]) : null; };
+
+/* 「反歌」「短歌二首」「或る本の反歌に曰はく」のような小見出しは、長歌の組の内側にある。組を切らない */
+export const isSubHead = s => /^(或る本の)?(反歌|短歌)(に曰はく)?([〇一二三四五六七八九十]+首)?$/.test(s || "");
 
 export function groupNotes(P) {
   const kt = P.map(() => null), sc = P.map(() => []);
   P.forEach((p, i) => {
-    if (!p.kt) return;
+    if (!p.kt || isSubHead(p.kt)) return;
     const m = /歌([〇一二三四五六七八九十\d]+)首/.exec(p.kt), n = m ? kanjiNum(m[1]) : null;
     const withTanka = /(また|并せて|ならびに|并|及)短歌|反歌/.test(p.kt);
     const bounded = !!n || withTanka;
     let j = i, longs = 0, cnt = 0;
     for (; j < P.length; j++) {
       const q = P[j];
-      if (j > i && (q.kt || q.vol !== p.vol || q.sec !== p.sec)) break;
+      if (j > i && ((q.kt && !isSubHead(q.kt)) || q.vol !== p.vol || q.sec !== p.sec)) break;
       if (bounded && q.kind === "長歌" && ++longs > (withTanka ? (n || 1) : Infinity)) break;
       cnt++;
       if (bounded) {
-        const c = /^右/.test(q.sc || "") ? scCount(q.sc) : -1;
+        const c = RIGHT.test(q.sc || "") ? scCount(q.sc) : -1;
         if (!withTanka) { if (cnt >= n) { j++; break; } continue; } // 「歌N首」は数で決める（一首ごとの「右の一首は」があっても続ける）
         if (c !== -1 && (c == null || c >= cnt)) { j++; break; }
         if (c !== -1) break; // 「右の一首」が長歌の組の途中に来たら、その歌は別の組（防人歌など）
-      } else if (/^右/.test(q.sc || "")) { j++; break; } // 数のない見出し（七夕など）は、データに小見出しの欠けがあるので最初の「右」で止める
+      } else if (RIGHT.test(q.sc || "")) { j++; break; } // 数のない見出し（七夕など）は、データに小見出しの欠けがあるので最初の「右」で止める
     }
     for (let k = i; k < j; k++) kt[k] = { at: i, from: p.no, to: P[j - 1].no };
   });
@@ -229,7 +234,7 @@ export function groupNotes(P) {
     const c = scCount(p.sc);
     let s = i;
     if (c) s = i - c + 1;
-    else if (/^右/.test(p.sc)) while (s > 0 && !P[s].kt && !P[s - 1].sc) s--;
+    else if (RIGHT.test(p.sc)) while (s > 0 && (!P[s].kt || isSubHead(P[s].kt)) && !P[s - 1].sc) s--;
     s = Math.max(s, 0);
     while (s < i && P[s].vol !== p.vol) s++;
     for (let k = s; k <= i; k++) sc[k].push({ at: i, from: P[s].no, to: p.no });
@@ -239,9 +244,9 @@ export function groupNotes(P) {
 
 /* AIへの指示文 */
 export function prompt(A, B) {
-  const d = p => `${lab(p)}（${p.kind}）\n題詞：${p.kt || "なし"}\n作者：${p.au || (p.sp ? "詠み手 " + p.sp : "記載なし")}\n本文：${p.tx}\n左注：${p.sc || "なし"}\n${p.rev && p.rev.ya ? "現代語訳（利用者が授業や注釈書で確かめた改訂訳）" : "現代語訳（AI作成・参考）"}：${p.ya}${p.rev && p.rev.note ? `\n利用者の注：${p.rev.note}` : ""}`;
+  const d = p => `${lab(p)}（${p.kind}）\n題詞：${p.kt || "なし"}\n歌人（万葉百科）：${p.au || "記載なし"}\n本文：${p.tx}\n原文：${p.gb || "なし"}\n左注：${p.sc || "なし"}\n${p.rev && p.rev.ya ? "現代語訳（利用者が授業や注釈書で確かめた改訂訳）" : "現代語訳（AI作成・参考）"}：${p.ya}${p.rev && p.rev.note ? `\n利用者の注：${p.rev.note}` : ""}`;
   return `あなたは万葉集研究の専門家です。次の二首の関係を分析してください。
-本文は鹿持雅澄『萬葉集古義』の訓による訓下し文で、現代の注釈書と訓が異なる場合があります。確信のない事実（作者、成立年、学説名など）は断定せず「要確認」と書いてください。架空の論文や学説を挙げてはいけません。
+本文は奈良県立万葉文化館「万葉百科」の読み下し文です。現代語訳は別の訓（鹿持雅澄『萬葉集古義』）からAIが作ったもので、本文とずれる場合があります。確信のない事実（作者、成立年、学説名など）は断定せず「要確認」と書いてください。架空の論文や学説を挙げてはいけません。
 
 【A】${d(A)}
 

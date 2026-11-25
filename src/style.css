@@ -192,3 +192,7 @@ details.yk .no{display:block}
 .doc dd{margin:4px 0 0;color:var(--body)}
 .back2{display:inline-flex;align-items:center;min-height:44px;font-size:13px;letter-spacing:.1em;color:var(--soft);text-decoration:none}
 .back2:hover{color:var(--ink)}
+#poem details.yk.gb,#poem details.yk.jo{margin:12px 0 0;max-width:none}
+#poem details.yk.gb p{font-size:15px;letter-spacing:.04em;word-break:break-all}
+.kt.hm{font-size:12px;letter-spacing:.06em}
+.bk{margin-top:8px}

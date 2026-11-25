@@ -9,7 +9,7 @@ for i,p in enumerate(P):
         if s>=0.15 and abs(P[j]['no']-p['no'])>5: pairs.add(tuple(sorted((i,j))))
 hidden=[];tot=0
 for i,j in pairs:
-    a,b=P[i],P[j]; ks=lcs(a['kn'],b['kn']); ts=lcs(a['tx'],b['tx'])
+    a,b=P[i],P[j]; ks=lcs(a['kn'],b['kn']); ts=lcs(a['tx'].replace('　',''),b['tx'].replace('　',''))  # 長歌の句の区切りは数えない
     if ks>=7:
         tot+=1
         if ts<5: hidden.append((ks,ts,a['no'],b['no']))

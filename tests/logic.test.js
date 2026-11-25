@@ -19,7 +19,8 @@ test("本文に詠み手名や「旋頭歌」が混じっていない", () => {
     assert.ok(!/[ 　]旋頭歌$/.test(p.tx), `${p.no}`);
     if (p.kind !== "長歌") assert.ok(!p.tx.includes("　"), `${p.no} ${p.tx}`);
   }
-  assert.equal(get(96).sp, "禅師");
+  assert.equal(get(96).au, "久米禅師");          // 歌人は万葉百科の記載
+  assert.deepEqual(get(96).bk, ["〔禅師〕"]);   // 本文中の〔〕は本文から外して別に持つ
   assert.equal(get(2311).kind, "旋頭歌");
 });
 
@@ -29,17 +30,17 @@ test("共通部分の印", () => {
 });
 
 test("読みの一致を本文に写す（表記が違っても濃くなる）", () => {
-  const html = paint(get(328).tx, marksK(get(328), { tx: "あをによし奈良の都", kn: "あおによしならのみやこ" }));
-  assert.ok(kids(html).join("").includes("青丹よし"), html);
+  const html = paint(get(1668).tx, marksK(get(1668), get(3679)));   // 「ま楫」と「ま梶」
+  assert.ok(kids(html).join("").includes("大船にま楫しじ貫き"), html);
 });
 
 test("短歌は上の句と下の句で二列に分ける", () => {
-  const cases = { 48: "東の野に炎の立つ見えて", 4311: "秋風に今か今かと紐解きて", 8: "熟田津に船乗りせむと月待てば", 4516: "新しき年の初めの初春の" };
+  const cases = { 48: "東の野にかぎろひの立つ見えて", 4311: "秋風に今か今かと紐解きて", 8: "熟田津に船乗りせむと月待てば", 4516: "新しき年の始めの初春の" };
   for (const [n, head] of Object.entries(cases)) {
     const p = get(+n), c = p.ct;
     assert.equal(p.tx.slice(0, c), head, `${n}`);
   }
-  const html = tate(get(48), "東の野に炎の立つ見えて反り見すれば<mark>月かたぶきぬ</mark>");
+  const html = tate(get(48), "東の野にかぎろひの立つ見えてかへり見すれば<mark>月傾きぬ</mark>");
   assert.equal((html.match(/<br>/g) || []).length, 1);
 });
 
@@ -72,7 +73,7 @@ test("検索：番号・範囲外・本文・読み・片仮名・見つから�
   assert.equal(search(P, byNo, "48").rows[0].i, byNo.get(48));
   assert.equal(search(P, byNo, "４８").rows[0].i, byNo.get(48));
   assert.equal(search(P, byNo, "4600").kind, "range");
-  assert.ok(search(P, byNo, "月かたぶき").rows.length >= 5);
+  assert.ok(search(P, byNo, "つきかたぶき").rows.length >= 5);
   const r = search(P, byNo, "にぎ");
   assert.deepEqual(r.rows.map(x => P[x.i].no).sort((a, b) => a - b), [804, 2574, 4028, 4465]);
   assert.ok(r.rows.every(x => x.why.includes("<mark>にぎ</mark>")));
@@ -81,7 +82,10 @@ test("検索：番号・範囲外・本文・読み・片仮名・見つから�
   assert.equal(search(P, byNo, "   ").kind, "empty");
   const many = search(P, byNo, "の");
   assert.equal(many.rows.length, 50); assert.ok(many.more);
-  assert.ok(search(P, byNo, "禅師").rows.some(x => P[x.i].no === 96), "詠み手でも探せる");
+  assert.ok(search(P, byNo, "禅師").rows.some(x => P[x.i].no === 96), "歌人でも探せる");
+  const g = search(P, byNo, "鳥尒之安良祢婆");
+  assert.equal(P[g.rows[0].i].no, 893, "原文でも探せる");
+  assert.ok(g.rows[0].why.startsWith("原文："));
 });
 
 test("検索結果の文字は必ずエスケープされる", () => {

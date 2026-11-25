@@ -1,5 +1,5 @@
 // 画面の部分
-import { lab, isLong, esc, marks, marksK, paint, rowText, tate, dotCount, candidates, search, prompt, parseHash, applyNotes, groupNotes } from "./logic.js";
+import { lab, isLong, esc, marks, marksK, paint, rowText, tate, dotCount, candidates, search, prompt, parseHash, applyNotes, groupNotes, isSubHead } from "./logic.js";
 import { keepFresh } from "./update.js";
 import { VERSION, BUILT } from "./version.js";
 
@@ -39,8 +39,12 @@ function setTabs() {
 /* 題詞と左注：組の歌すべてに出す。範囲が2首以上なら番号を付け、元の歌へリンクする */
 const span = (r, i) => r.from === r.to ? "" : `（<a href="#n${r.from}">${r.from}</a>〜<a href="#n${r.to}">${r.to}</a>）`;
 function ktBlock(i) {
-  const r = G.kt[i]; if (!r) return "";
-  return `<p class="kt">${r.from === r.to ? "" : `<span class="lb">題詞${span(r, i)}</span>`}${esc(P[r.at].kt)}</p>`;
+  const p = P[i], r = G.kt[i];
+  const hm = p.hm ? `<p class="kt hm">${esc(p.hm)}</p>` : "";
+  const main = r ? `<p class="kt">${r.from === r.to ? "" : `<span class="lb">題詞${span(r, i)}</span>`}${esc(P[r.at].kt)}</p>` : "";
+  const sub = isSubHead(p.kt) ? `<p class="kt">${esc(p.kt)}</p>` : "";
+  const jo = p.jo ? `<details class="yk jo"><summary>序を見る</summary><p>${esc(p.jo)}</p></details>` : "";
+  return hm + main + sub + jo;
 }
 function scBlock(i) {
   return (G.sc[i] || []).map(r => `<p class="small sc"><span class="lb">左注${span(r, i)}</span>${esc(P[r.at].sc)}</p>`).join("");
@@ -50,12 +54,14 @@ function showPoem(i) {
   document.body.classList.remove("cmp");
   if (ctl) { ctl.abort(); ctl = null; }
   document.title = `${lab(p)}｜万葉集 類歌検索`;
-  const meta = [esc(p.kind) + (p.sec ? "・" + esc(p.sec) : ""), p.au ? esc(p.au) : "", p.sp ? "詠み手　" + esc(p.sp) : ""].filter(Boolean).join("<br>");
+  const meta = [esc(p.kind) + (p.sec ? "・" + esc(p.sec) : ""), p.au ? esc(p.au) : ""].filter(Boolean).join("<br>");
   const body = esc(p.tx).replace(/　/g, "<br>");
   $("#poem").innerHTML = `<div class="hero"><div class="hl"><div class="vol">巻${p.vol}</div><div class="big">${p.no}</div><p class="meta">${meta}</p></div>${isLong(p) ? "" : tate(p, body)}</div>
   ${isLong(p) ? tate(p, body) + `<p class="shint">左へ送って続きを読む</p>` : ""}
+  ${p.bk ? `<p class="small bk">${p.bk.map(esc).join("　")}</p>` : ""}
   ${ktBlock(i)}
-  <p class="kana${isLong(p) ? " clamp" : ""}" id="kana">${esc(p.kn)}</p>${isLong(p) ? `<button class="btn more" id="more" aria-expanded="false">読みをすべて表示</button>` : ""}
+  <p class="kana${isLong(p) ? " clamp" : ""}" id="kana">${esc(p.ym || p.kn)}</p>${isLong(p) ? `<button class="btn more" id="more" aria-expanded="false">読みをすべて表示</button>` : ""}
+  ${p.gb ? `<details class="yk gb"><summary>原文を見る</summary><p>${esc(p.gb)}</p></details>` : ""}
   ${yaBlock(p)}
   ${scBlock(i)}`;
   const mo = $("#more");
@@ -67,9 +73,9 @@ function showPoem(i) {
 
 /* 現代語訳：改訂訳があればそれを主に、AIの訳は畳んで残す */
 function yaBlock(p) {
-  if (!p.rev) return p.ya ? `<p class="ya">${esc(p.ya)}</p><p class="small">現代語訳はAIによるものです。</p>` : "";
+  if (!p.rev) return p.ya ? `<p class="ya">${esc(p.ya)}</p><p class="small">現代語訳はAIによるもので、本文とは別の訓から作っています。</p>` : "";
   const r = p.rev, when = r.date ? `、${esc(r.date)}` : "";
-  return `${r.ya ? `<p class="ya rev">${esc(p.ya)}</p><p class="small"><span class="revdot" aria-hidden="true"></span>改訂訳（${esc(r.src || "出典未記入")}${when}）</p>` : (p.ya ? `<p class="ya">${esc(p.ya)}</p><p class="small">現代語訳はAIによるものです。</p>` : "")}
+  return `${r.ya ? `<p class="ya rev">${esc(p.ya)}</p><p class="small"><span class="revdot" aria-hidden="true"></span>改訂訳（${esc(r.src || "出典未記入")}${when}）</p>` : (p.ya ? `<p class="ya">${esc(p.ya)}</p><p class="small">現代語訳はAIによるもので、本文とは別の訓から作っています。</p>` : "")}
   ${r.note ? `<p class="rnote"><span class="sec">注</span>${esc(r.note)}${!r.ya ? `<span class="small">（${esc(r.src || "出典未記入")}${when}）</span>` : ""}</p>` : ""}
   ${r.ya && p.aiya ? `<details class="yk ai"><summary>AIの訳を見る</summary><p>${esc(p.aiya)}</p></details>` : ""}`;
 }
