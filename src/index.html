@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>万葉集 類歌検索</title>
+<meta name="description" content="万葉集全20巻4516首から、表現と内容の近い歌をたどる。読みの一致も本文に写して見せる。">
+<meta name="theme-color" content="#f3f3f1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="類歌検索">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="万葉集 類歌検索">
+<meta property="og:description" content="万葉集全20巻4516首から、表現と内容の近い歌をたどる。">
+<meta property="og:url" content="__SITE__/">
+<meta property="og:image" content="__SITE__/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+<div class="top">
+  <header><h1><a href="#n48" id="homelink">万葉集 類歌検索</a></h1><p class="lead">全20巻4516首。表現と内容の近い歌をたどります。</p></header>
+  <form class="sbox" id="sf" role="search">
+    <label for="q">歌番号か語句</label>
+    <div class="field">
+      <input id="q" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="例：48、月かたぶき" role="combobox" aria-expanded="false" aria-controls="hits" aria-autocomplete="list" aria-label="歌番号か語句">
+      <button type="button" class="btn" id="clr" aria-label="入力を消す"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1 1l10 10M11 1L1 11"/></svg></button>
+    </div>
+    <div id="hits" role="listbox" aria-label="検索結果"></div>
+  </form>
+</div>
+
+<div id="home">
+  <div class="grid">
+    <section class="poem" id="poem" aria-live="polite"><div class="loading"><span class="pulse" aria-hidden="true"><i></i><i></i><i></i></span>読み込んでいます</div></section>
+    <section class="side" aria-label="近い歌">
+      <div class="tabs" role="tablist">
+        <button class="btn tab" id="tE" role="tab" aria-selected="true">表現が近い</button>
+        <button class="btn tab" id="tC" role="tab" aria-selected="false">内容が近い</button>
+        <span class="cnt" id="cnt"></span>
+        <label class="tg"><input type="checkbox" id="near" checked>前後5首を除く</label>
+      </div>
+      <ol class="list" id="list"></ol>
+      <p class="hint" id="hint"></p>
+    </section>
+  </div>
+
+  <section class="stats">
+    <h2 class="sec">文字列検索との比較</h2>
+    <div class="figs" id="figs"></div>
+    <p class="small">仮名に直すと7字以上一致するのに、表記のままでは5字以上一致しない組です。寧樂と奈良、命畏みと命かしこみのように、表記の違いを越えて拾えた例です。</p>
+    <div class="ex" id="ex"></div>
+    <p class="note">本文は<a href="https://github.com/kumoi-no-fumigura/manyoshu">雲居の文庫『万葉集』</a>（CC0）。訓は鹿持雅澄『萬葉集古義』による未校正の訓下し文で、現代の注釈書と異なる歌があります。現代語訳は同文庫がAIで作成したものです。読みは国立国語研究所「上代語UniDic」（ver.2025.12、CC BY-NC-SA 4.0）による形態素解析で作り、辞書にない語だけ機械で補いました。読みのデータも同じ条件（表示・非営利・継承）で扱います。</p>
+  </section>
+</div>
+
+<div id="cmp">
+  <div class="cbar">
+    <button class="btn" id="back">← 一覧へ戻る</button>
+    <div class="nav"><button class="btn" id="prev" aria-label="前の候補">前</button><span class="pos" id="pos"></span><button class="btn" id="next" aria-label="次の候補">次</button></div>
+  </div>
+  <div class="pair" id="pair"></div>
+  <p class="swipe">左右にめくると、前後の候補に移ります</p>
+  <details class="yk" id="yk"><summary>現代語訳を見る</summary><div id="ykb"></div></details>
+  <div class="ana" id="ana" aria-live="polite"></div>
+  <div class="done" id="done"></div>
+</div>
+
+<footer class="foot"><a href="about.html">使い方</a><span class="ver" id="ver"></span></footer>
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

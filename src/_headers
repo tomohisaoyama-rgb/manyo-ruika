@@ -1,0 +1,8 @@
+# Cloudflare Pages：Service Worker と版の情報は毎回確かめる
+/sw.js
+  Cache-Control: no-cache
+/version.js
+  Cache-Control: no-cache
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
