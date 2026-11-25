@@ -185,6 +185,58 @@ export function applyNotes(P, byNo, notes) {
   return n;
 }
 
+/* 題詞と左注が及ぶ範囲を求める。原文は書き換えず、どの歌にどの題詞・左注が掛かるかだけを返す
+   題詞：次の題詞、巻や部立の変わり目まで。「歌N首」「また短歌」とあれば、その数と長歌の数で止める。
+         組を締める「右」の左注があれば、そこで止める。範囲が分からないときは短めに取る（誤った題詞を出さない）
+   左注：「右のN首」なら前のN首。数がなければ、前の左注か題詞の所まで。「右」で始まらなければその歌だけ */
+const KNUM = { 〇: 0, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+export function kanjiNum(s) {
+  if (/^\d+$/.test(s)) return +s;
+  let n = 0, t = 0;
+  for (const c of s) {
+    if (c === "十") { n += (t || 1) * 10; t = 0; }
+    else if (c in KNUM) t = KNUM[c];
+    else return null;
+  }
+  return n + t;
+}
+const scCount = sc => { const m = /右(?:の|ノ)?([〇一二三四五六七八九十\d]+)首/.exec(sc || ""); return m ? kanjiNum(m[1]) : null; };
+
+export function groupNotes(P) {
+  const kt = P.map(() => null), sc = P.map(() => []);
+  P.forEach((p, i) => {
+    if (!p.kt) return;
+    const m = /歌([〇一二三四五六七八九十\d]+)首/.exec(p.kt), n = m ? kanjiNum(m[1]) : null;
+    const withTanka = /(また|并せて|ならびに|并|及)短歌|反歌/.test(p.kt);
+    const bounded = !!n || withTanka;
+    let j = i, longs = 0, cnt = 0;
+    for (; j < P.length; j++) {
+      const q = P[j];
+      if (j > i && (q.kt || q.vol !== p.vol || q.sec !== p.sec)) break;
+      if (bounded && q.kind === "長歌" && ++longs > (withTanka ? (n || 1) : Infinity)) break;
+      cnt++;
+      if (bounded) {
+        const c = /^右/.test(q.sc || "") ? scCount(q.sc) : -1;
+        if (!withTanka) { if (cnt >= n) { j++; break; } continue; } // 「歌N首」は数で決める（一首ごとの「右の一首は」があっても続ける）
+        if (c !== -1 && (c == null || c >= cnt)) { j++; break; }
+        if (c !== -1) break; // 「右の一首」が長歌の組の途中に来たら、その歌は別の組（防人歌など）
+      } else if (/^右/.test(q.sc || "")) { j++; break; } // 数のない見出し（七夕など）は、データに小見出しの欠けがあるので最初の「右」で止める
+    }
+    for (let k = i; k < j; k++) kt[k] = { at: i, from: p.no, to: P[j - 1].no };
+  });
+  P.forEach((p, i) => {
+    if (!p.sc) return;
+    const c = scCount(p.sc);
+    let s = i;
+    if (c) s = i - c + 1;
+    else if (/^右/.test(p.sc)) while (s > 0 && !P[s].kt && !P[s - 1].sc) s--;
+    s = Math.max(s, 0);
+    while (s < i && P[s].vol !== p.vol) s++;
+    for (let k = s; k <= i; k++) sc[k].push({ at: i, from: P[s].no, to: p.no });
+  });
+  return { kt, sc };
+}
+
 /* AIへの指示文 */
 export function prompt(A, B) {
   const d = p => `${lab(p)}（${p.kind}）\n題詞：${p.kt || "なし"}\n作者：${p.au || (p.sp ? "詠み手 " + p.sp : "記載なし")}\n本文：${p.tx}\n左注：${p.sc || "なし"}\n${p.rev && p.rev.ya ? "現代語訳（利用者が授業や注釈書で確かめた改訂訳）" : "現代語訳（AI作成・参考）"}：${p.ya}${p.rev && p.rev.note ? `\n利用者の注：${p.rev.note}` : ""}`;

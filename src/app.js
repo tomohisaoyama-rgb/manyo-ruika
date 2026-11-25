@@ -1,10 +1,10 @@
 // 画面の部分
-import { lab, isLong, esc, marks, marksK, paint, rowText, tate, dotCount, candidates, search, prompt, parseHash, applyNotes } from "./logic.js";
+import { lab, isLong, esc, marks, marksK, paint, rowText, tate, dotCount, candidates, search, prompt, parseHash, applyNotes, groupNotes } from "./logic.js";
 import { keepFresh } from "./update.js";
 import { VERSION, BUILT } from "./version.js";
 
 const $ = s => document.querySelector(s);
-let P = [], cur = 0, sample = null, ctl = null, view = null, cand = [], ci = -1, act = -1;
+let P = [], G = { kt: [], sc: [] }, cur = 0, sample = null, ctl = null, view = null, cand = [], ci = -1, act = -1;
 const byNo = new Map(), aiCache = new Map();
 const PULSE = `<span class="pulse" aria-hidden="true"><i></i><i></i><i></i></span>`;
 const SECS = [["common", "共通する表現"], ["diff", "違い"], ["relation", "関係の見立て"], ["check", "確かめること"]];
@@ -36,6 +36,15 @@ function setTabs() {
   $("#tC").setAttribute("aria-selected", String(mode === "c"));
 }
 
+/* 題詞と左注：組の歌すべてに出す。範囲が2首以上なら番号を付け、元の歌へリンクする */
+const span = (r, i) => r.from === r.to ? "" : `（<a href="#n${r.from}">${r.from}</a>〜<a href="#n${r.to}">${r.to}</a>）`;
+function ktBlock(i) {
+  const r = G.kt[i]; if (!r) return "";
+  return `<p class="kt">${r.from === r.to ? "" : `<span class="lb">題詞${span(r, i)}</span>`}${esc(P[r.at].kt)}</p>`;
+}
+function scBlock(i) {
+  return (G.sc[i] || []).map(r => `<p class="small sc"><span class="lb">左注${span(r, i)}</span>${esc(P[r.at].sc)}</p>`).join("");
+}
 function showPoem(i) {
   const same = cur === i && $("#poem .big"); cur = i; const p = P[i];
   document.body.classList.remove("cmp");
@@ -45,10 +54,10 @@ function showPoem(i) {
   const body = esc(p.tx).replace(/　/g, "<br>");
   $("#poem").innerHTML = `<div class="hero"><div class="hl"><div class="vol">巻${p.vol}</div><div class="big">${p.no}</div><p class="meta">${meta}</p></div>${isLong(p) ? "" : tate(p, body)}</div>
   ${isLong(p) ? tate(p, body) + `<p class="shint">左へ送って続きを読む</p>` : ""}
-  ${p.kt ? `<p class="kt">${esc(p.kt)}</p>` : ""}
+  ${ktBlock(i)}
   <p class="kana${isLong(p) ? " clamp" : ""}" id="kana">${esc(p.kn)}</p>${isLong(p) ? `<button class="btn more" id="more" aria-expanded="false">読みをすべて表示</button>` : ""}
   ${yaBlock(p)}
-  ${p.sc ? `<p class="small">左注：${esc(p.sc)}</p>` : ""}`;
+  ${scBlock(i)}`;
   const mo = $("#more");
   if (mo) mo.addEventListener("click", () => { const k = $("#kana"), o = k.classList.toggle("clamp"); mo.textContent = o ? "読みをすべて表示" : "読みを閉じる"; mo.setAttribute("aria-expanded", String(!o)); });
   if (!same) window.scrollTo(0, 0);
@@ -214,6 +223,7 @@ Promise.all([
 ]).then(([d, st, notes]) => {
   P = d; P.forEach((p, i) => byNo.set(p.no, i));
   applyNotes(P, byNo, notes);
+  G = groupNotes(P);
   $("#figs").innerHTML = [[st.pairs, "表現が近い組"], [st.strong, "仮名で7字以上一致"], [st.hidden, "表記のままでは見落とす"]].map(([n, t]) => `<div class="fg"><b>${Number(n).toLocaleString()}</b><span>${esc(t)}</span></div>`).join("");
   $("#ex").innerHTML = st.examples.map(([a, b]) => {
     const A = P[byNo.get(a)], B = P[byNo.get(b)], m = marks(A.tx, B.tx, 2), mb = marks(B.tx, A.tx, 2);

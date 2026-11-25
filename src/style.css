@@ -64,6 +64,9 @@ mark{background:none;color:var(--ink);font-weight:500}
 .more{min-height:44px;align-self:flex-start;margin-top:-14px;font-size:12px;letter-spacing:.1em}
 .ya{margin:0;padding-top:16px;border-top:1px solid var(--line);font-size:14px;line-height:1.9;color:var(--body);white-space:pre-line}
 .small{margin:0;font-size:12px;line-height:1.7;color:var(--soft)}
+.kt .lb,.sc .lb{display:block;font-size:11px;letter-spacing:.05em;color:var(--soft)}
+.kt a,.sc a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+.sc{margin-top:6px}
 .ya.rev{color:var(--ink)}
 .revdot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--ink);margin-right:8px;vertical-align:middle}
 .rnote{margin:0;font-size:14px;line-height:1.9;color:var(--body);white-space:pre-line}

@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { marks, marksK, paint, cut, tate, align, toKana, search, rowText, candidates, dotCount, parseHash, prompt, esc } from "../src/logic.js";
+import { marks, marksK, paint, cut, tate, align, toKana, search, rowText, candidates, dotCount, parseHash, prompt, esc, groupNotes, kanjiNum } from "../src/logic.js";
 
 const P = JSON.parse(readFileSync(new URL("../src/data.json", import.meta.url)));
 const byNo = new Map(P.map((p, i) => [p.no, i]));
@@ -155,4 +155,25 @@ test("notes.json は正しいJSONで、番号が実在する", () => {
     assert.ok(v.ya || v.note, `${k}に訳も注もない`);
     assert.ok(v.src, `${k}に拠り所がない`);
   }
+});
+
+test("題詞と左注の範囲：組の歌すべてに掛かり、別の組には掛からない", () => {
+  const G = groupNotes(P);
+  const kt = n => { const k = G.kt[byNo.get(n)]; return k ? `${k.from}-${k.to}` : "-"; };
+  const sc = n => G.sc[byNo.get(n)].map(x => `${x.from}-${x.to}`).join(",");
+  assert.equal(kanjiNum("二十三"), 23);
+  assert.equal(kanjiNum("廿"), null);
+  assert.equal(kt(893), "892-893");          // 反歌は長歌の題詞を受け継ぐ
+  assert.equal(kt(894), "894-896");          // 次の題詞からは別の組
+  assert.equal(kt(142), "141-142");          // 「御歌二首」
+  assert.equal(kt(4272), "4269-4272");       // 「歌四首」は一首ごとの左注があっても四首
+  assert.equal(kt(4412), "4408-4412");       // 長歌と反歌の後の防人歌には掛けない
+  assert.equal(kt(4413), "-");
+  assert.equal(kt(2033), "1996-2033");       // 数のない見出しは最初の「右」で止める
+  assert.equal(kt(2034), "-");
+  assert.equal(sc(3335), "3335-3343");       // 「右九首」
+  assert.equal(sc(1807), "1807-1811");       // 「右の五首」
+  assert.equal(sc(4270), "4270-4270");       // 「右の一首」
+  for (const [i, k] of G.kt.entries()) if (k) assert.equal(P[i].vol, P[k.at].vol, `${P[i].no}が巻をまたぐ`);
+  for (const [i, a] of G.sc.entries()) for (const x of a) assert.equal(P[i].vol, P[x.at].vol, `${P[i].no}の左注が巻をまたぐ`);
 });
