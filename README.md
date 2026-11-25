@@ -17,32 +17,44 @@
 | `src/about.html` | 使い方のページ（/about） |
 | `src/data.json` `src/stats.json` | 歌のデータと検証の数字 |
 | `tools/build.sh` | 公開用の `dist/` を作る |
-| `tools/deploy.sh` | テスト、ビルド、Cloudflare Pages への公開をまとめて行う |
+| `tools/deploy.sh` | 手元から直接公開するとき（通常は使わない） |
 | `tools/build_data.py` `tools/stats.py` | データを作り直す |
 | `VERSION` | 今の版の番号 |
 
-## 初めて公開する
+## 公開のしくみ
 
-Cloudflare Pages（無料）に置きます。
+GitHub の `main` に push すると、Cloudflare Pages が自動でビルドして公開します。
 
-```sh
-npx wrangler login                  # 初回だけ。ブラウザでCloudflareにログイン
-tools/deploy.sh                     # テスト → ビルド → 公開
+- 公開先：`https://manyo-ruika.pages.dev`
+- ビルドコマンド：`bash tools/build.sh`
+- 出力先：`dist`
+
+`tools/build.sh` は公開のたびに Service Worker の版（`VERSION`＋日時）を変えます。そのため、改訂訳や注を足しただけの更新も、使っている人に必ず届きます。
+
+## 改訂訳と注を足す
+
+`src/notes.json` に歌番号ごとに書きます。
+
+```json
+{
+  "4311": { "ya": "改訂した訳", "note": "注", "src": "出典（授業名・書名など）", "date": "2026-11-25" }
+}
 ```
 
-公開先は `https://manyo-ruika.pages.dev` になります。別の名前にするときは、`tools/deploy.sh` の `PROJECT` と、`tools/build.sh` の `SITE` を変えます。
+- `ya` を書くと、AIの訳の代わりに改訂訳を出します。AIの訳は「AIの訳を見る」で読めます。
+- 授業の板書や注釈書の文章は写さず、自分の言葉で書きます。
+- push すれば数十秒で公開されます。
 
 ## 更新する（バージョンアップ）
 
 1. `src/` を直します。
-2. `VERSION` の数字を一つ上げます。
-3. `tools/deploy.sh` を実行します。
+2. 画面や仕組みを変えたときは `VERSION` の数字を一つ上げます。
+3. `npm test` を通してから push します。
 
 これだけで、使っている人の画面は次のように新しくなります。
 
 - ホーム画面のアプリは、次に開いたときに新しくなります。
 - 開いたままの人は、画面に戻ったときに更新を確かめ、入力中やAIの比較中でなければ、その場で読み込み直します。開いていた歌はそのままです。
-- `VERSION` を上げないと、ファイルを変えても届きません（キャッシュ優先のため）。
 
 版と公開日は、画面の一番下と使い方のページに出ます。
 
@@ -78,5 +90,6 @@ npm test        # 計算の部分（15項目）
 
 ## 記録
 
+- 2026年11月25日：GitHub と Cloudflare Pages をつなぎ、push で自動公開するようにした。
 - バージョン 2（2026年11月25日）：Service Workerが転送された応答をページに使い、公開先で開けなかった不具合を直した。
 - バージョン 1（2026年11月25日）：スマホ向けWebアプリとして公開。PWA、オフライン、更新の仕組み、めくる操作、前回の歌を覚える。
