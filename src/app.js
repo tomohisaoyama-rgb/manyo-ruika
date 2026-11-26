@@ -74,9 +74,10 @@ function showPoem(i) {
 /* 現代語訳：改訂訳があればそれを主に、AIの訳は畳んで残す */
 function yaBlock(p) {
   if (!p.rev) return p.ya ? `<p class="ya">${esc(p.ya)}</p><p class="small">現代語訳はAIによるもので、本文とは別の訓から作っています。</p>` : "";
-  const r = p.rev, when = r.date ? `、${esc(r.date)}` : "";
-  return `${r.ya ? `<p class="ya rev">${esc(p.ya)}</p><p class="small"><span class="revdot" aria-hidden="true"></span>改訂訳（${esc(r.src || "出典未記入")}${when}）</p>` : (p.ya ? `<p class="ya">${esc(p.ya)}</p><p class="small">現代語訳はAIによるもので、本文とは別の訓から作っています。</p>` : "")}
-  ${r.note ? `<p class="rnote"><span class="sec">注</span>${esc(r.note)}${!r.ya ? `<span class="small">（${esc(r.src || "出典未記入")}${when}）</span>` : ""}</p>` : ""}
+  // 出典は「授業（日付）」のように括弧を含むので、外側を括弧で包まない
+  const r = p.rev, src = `出典：${esc(r.src || "未記入")}${r.date ? `　記入：${esc(r.date)}` : ""}`;
+  return `${r.ya ? `<p class="ya rev">${esc(p.ya)}</p><p class="small"><span class="revdot" aria-hidden="true"></span>改訂訳　${src}</p>` : (p.ya ? `<p class="ya">${esc(p.ya)}</p><p class="small">現代語訳はAIによるもので、本文とは別の訓から作っています。</p>` : "")}
+  ${r.note ? `<p class="rnote"><span class="sec">注</span>${esc(r.note)}${!r.ya ? `<span class="small src">${src}</span>` : ""}</p>` : ""}
   ${r.ya && p.aiya ? `<details class="yk ai"><summary>AIの訳を見る</summary><p>${esc(p.aiya)}</p></details>` : ""}`;
 }
 
